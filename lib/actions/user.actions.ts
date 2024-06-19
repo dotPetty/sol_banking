@@ -1,6 +1,6 @@
 'use server'
 
-import { ID } from "node-appwrite";
+import { ID, Query } from "node-appwrite";
 import { createAdminClient, createSessionClient } from "../appwrite";
 import { cookies } from "next/headers";
 import { encryptId, extractCustomerIdFromUrl, parseStringify } from "../utils";
@@ -14,6 +14,22 @@ const {
     APPWRITE_USER_COLLECTION_ID: USER_COLLECTION_ID,
     APPWRITE_BANK_COLLECTION_ID: BANK_COLLECTIONE_ID,
 } = process.env;
+
+export const getUserInfo = async ({ userId }: getUserInfoProps) => {
+  try {
+    const { database } = await createAdminClient();
+
+    const user = await database.listDocuments(
+      DATABASE_ID!,
+      USER_COLLECTION_ID!,
+      [Query.equal('userId', [userId])]
+    )
+
+    return parseStringify(user.documents[0]);
+  } catch (error) {
+    console.log(error)
+  }
+}
 
 export const signIn = async ({ email, password }: signInProps) => {
     // Create email and password session
@@ -79,6 +95,20 @@ export const signUp = async ({ password, ...userData }: SignUpParams) => {
       return parseStringify(newUser);
     } catch (error) {
       console.error('Error', error);
+    }
+  }
+
+  export async function getLoggedInUser() {
+    try {
+      const { account } = await createSessionClient();
+      const result = await account.get();
+  
+      const user = await getUserInfo({ userId: result.$id})
+  
+      return parseStringify(user);
+    } catch (error) {
+      console.log(error)
+      return null;
     }
   }
 
